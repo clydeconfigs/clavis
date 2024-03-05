@@ -1,0 +1,100 @@
+#!/bin/fish
+
+# check if $clavis (password store path) is empty, and if so: set a default path
+test -z $clavis && export clavis="$HOME/.local/clavis"
+
+# check if folder exists
+test -e $clavis || begin 
+    mkdir $clavis; echo "created new database at $clavis"
+    touch $clavis/store
+end
+
+function clearclip ()
+    sleep 20
+    echo "" | xclip -sel c
+    notify-send "clipboard has been cleared"
+end 
+
+function autotype () 
+    sed -n $position"p" $clavis/store | awk '{ print $"$p" }' | xdotool type --delay 12 --clearmodifiers --file -
+end
+
+function options ()
+    set options $(echo -e "full input\nautotype login\nautotype pass\ncopy&paste pass\ntitle" | rofi -dmenu -p "what do you want to do?")
+    set position $(echo $choice | awk '{ print $1 }') 
+    
+    switch $options
+        case "full input"
+            sed -n $position"p" $clavis/store | awk '{ print $2 }' | xdotool type --delay 12 --clearmodifiers --file -
+            xdotool key Tab
+            sed -n $position"p" $clavis/store | awk '{ print $3 }' | xdotool type --delay 12 --clearmodifiers --file -
+            xdotool key Enter
+        case "autotype login"
+            sed -n $position"p" $clavis/store | awk '{ print $2 }' | xdotool type --delay 12 --clearmodifiers --file -
+        case "autotype pass"
+            sed -n $position"p" $clavis/store | awk '{ print $3 }' | xdotool type --delay 12 --clearmodifiers --file -
+        case "copy&paste pass"
+            sed -n $position"p" $clavis/store | awk '{ print $3 }' | tr -d '\n' | xclip -sel c && xdotool key ctrl+shift+v
+            clearclip
+        case "title"
+            sed -n $position"p" $clavis/store | awk '{ print $1 }' | xdotool type --delay 12 --clearmodifiers --file -
+    end
+end
+
+function remove () 
+    set user_choice $(echo -e "yes\nno" | rofi -dmenu -p "do you want to delete this entry?
+
+$found
+" -i -lines 2 -width 20)
+    
+    switch $user_choice
+        case "yes"
+            test -z $exit || exit 1
+            sed -n "$number"p $clavis/store >> $clavis/trashbin
+            sed -i "$number"d $clavis/store
+        case "no"
+            return
+        case "*"
+            return
+    end
+end
+
+function display_help ()
+    set_color -o
+    echo ""
+    echo "  available commands (no third arguments required):"
+    set_color normal
+    echo "   clavis list"
+    echo "   clavis add"
+    echo "   clavis remove"
+    echo "   clavis edit"
+    echo "   clavis export"
+    echo "   clavis help"
+    echo ""
+end
+
+switch $argv[1]
+    case "list"
+        set choice "$(nl $clavis/store | awk '{ print $1" "$2" "$3 }' | rofi -dmenu -p "alskdj" -lines 0 -no-fixed-num-lines)" && \
+        options
+    case "add"
+        set title (rofi -dmenu -p "enter title" -lines 0 -no-fixed-num-lines) && \
+        set username (rofi -dmenu -p "enter username" -lines 0 -no-fixed-num-lines) && \
+        set password (rofi -dmenu -p "enter password" -lines 0 -no-fixed-num-lines) && \
+        echo -e $title\t$username\t$password >> $clavis/store
+    case "remove"
+        set search (rofi -dmenu -p "enter entry to remove" -lines 0 -no-fixed-num-lines) && \
+        set found (grep -n $search $clavis/store | head -n1) && \
+        set number (echo $found | cut -d: -f 1) && \
+        remove
+    case "edit"
+        $EDITOR $clavis/store
+    case "export"
+        cat $clavis/store | xclip -sel c
+        notify-send "entire database copied to clipboard, clearing in 20 seconds..."
+        clearclip
+    case "help"
+        display_help
+    case "*"
+        display_help
+end
