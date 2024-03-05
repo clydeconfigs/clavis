@@ -20,11 +20,15 @@ function autotype ()
 end
 
 function options ()
-    set options $(echo -e "full input\nautotype login\nautotype pass\ncopy&paste pass\ntitle" | rofi -dmenu -p "what do you want to do?")
+    set options $(echo -e "full input\nfull input (with enter)\nautotype login\nautotype pass\nautotype pass (with enter)\ncopy&paste pass\ntitle" | rofi -dmenu -p "what do you want to do?")
     set position $(echo $choice | awk '{ print $1 }') 
     
     switch $options
         case "full input"
+            sed -n $position"p" $clavis/store | awk '{ print $2 }' | xdotool type --delay 12 --clearmodifiers --file -
+            xdotool key Tab
+            sed -n $position"p" $clavis/store | awk '{ print $3 }' | xdotool type --delay 12 --clearmodifiers --file -
+        case "full input (with enter)"
             sed -n $position"p" $clavis/store | awk '{ print $2 }' | xdotool type --delay 12 --clearmodifiers --file -
             xdotool key Tab
             sed -n $position"p" $clavis/store | awk '{ print $3 }' | xdotool type --delay 12 --clearmodifiers --file -
@@ -33,6 +37,9 @@ function options ()
             sed -n $position"p" $clavis/store | awk '{ print $2 }' | xdotool type --delay 12 --clearmodifiers --file -
         case "autotype pass"
             sed -n $position"p" $clavis/store | awk '{ print $3 }' | xdotool type --delay 12 --clearmodifiers --file -
+        case "autotype pass (with enter)"
+            sed -n $position"p" $clavis/store | awk '{ print $3 }' | xdotool type --delay 12 --clearmodifiers --file -
+            xdotool key Enter            
         case "copy&paste pass"
             sed -n $position"p" $clavis/store | awk '{ print $3 }' | tr -d '\n' | xclip -sel c && xdotool key ctrl+shift+v
             clearclip
