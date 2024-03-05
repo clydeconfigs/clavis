@@ -1,0 +1,34 @@
+#!/bin/bash
+
+{ 
+if [ $# -ge 1 ]; then
+    value=$1
+else
+    value=$(echo -e "list
+add
+remove
+edit
+export" |rofi -dmenu -lines 0 -no-fixed-num-lines -p "clavis" value)
+fi
+
+case $value in
+    "list")
+        clavis list
+        ;;
+    "add")
+        clavis add
+        ;;
+    "remove")
+        clavis remove
+        ;;
+    "edit")
+        clavis edit
+        ;;
+    "export")
+        clavis export
+        ;;
+    *)
+        clavis
+        ;;
+esac
+} &
