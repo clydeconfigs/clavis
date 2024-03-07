@@ -1,0 +1,56 @@
+--- clavis	2024-03-07 21:11:30.609197426 +0100
++++ clavis-gpg	2024-03-07 21:05:42.078524100 +0100
+@@ -3,10 +3,29 @@
+ # check if $clavis (password store path) is empty, and if so: set a default path
+ test -z $clavis && export clavis="$HOME/.local/clavis"
+ 
++set clavis_local $clavis
++
+ # check if folder exists
+ test -e $clavis || begin 
++    set gpgid (rofi -dmenu -p "enter the gpg key id" -i -lines 0 -no-fixed-num-lines)
++    gpg --list-keys | grep -e " $gpgid\$" || begin
++        rofi -e "key does not exist"
++        exit 1
++    end    
+     mkdir $clavis; echo "created new database at $clavis"
+     touch $clavis/store
++    echo $gpgid > $clavis/gpgid
++    gpg --yes -o $clavis/store.gpg -r $(cat $clavis/gpgid) -e $clavis/store
++    rm $clavis/store
++end
++
++# decrypt
++mkdir /tmp/clavis
++gpg -d $clavis/store.gpg > /tmp/clavis/store
++export clavis="/tmp/clavis"
++
++function update ()
++    gpg --yes -o $clavis_local/store.gpg -r $(cat $clavis_local/gpgid) -e $clavis/store 
+ end
+ 
+ function clearclip ()
+@@ -56,6 +75,7 @@
+             test -z $exit || exit 1
+             sed -n "$position"p $clavis/store >> $clavis/trashbin
+             sed -i "$position"d $clavis/store
++            update
+             notify-send "entry $name removed (moved to $clavis/trashbin)"
+         case "no"
+             return
+@@ -90,6 +110,7 @@
+         begin
+             test -z $password && set password (echo "!Clav1s$(openssl rand 18 | base64)")
+             echo -e $title\t$username\t$password >> $clavis/store
++            update
+             notify-send "password $title added to the store -> $clavis/store"
+         end
+         
+@@ -101,6 +122,7 @@
+         
+     case "edit"
+         $EDITOR $clavis/store
++        update
+         
+     case "export"
+         cat $clavis/store | xclip -sel c
