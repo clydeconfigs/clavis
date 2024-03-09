@@ -1,4 +1,4 @@
-INSTALL_DIR = /bin
+INSTALL_DIR = /usr/local/bin
 SCRIPT_NAME = clavis
 RUNNER = clav
 
