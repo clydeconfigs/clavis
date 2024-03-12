@@ -1,7 +1,7 @@
 #!/bin/fish
 
 # check if $clavis (password store path) is empty, and if so: set a default path
-test -z $clavis && export clavis="$HOME/.local/clavis"
+test -z $clavis && export clavis="$HOME/.local/share/clavis"
 
 # check if folder exists
 test -e $clavis || begin 
@@ -15,7 +15,7 @@ function clearclip ()
     notify-send "clipboard has been cleared"
 end 
 
-function autotype () 
+function autotype () S
     sed -n $position"p" $clavis/store | awk '{ print $"$p" }' | xdotool type --delay 12 --clearmodifiers --file -
 end
 
